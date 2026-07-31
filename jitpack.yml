@@ -1,0 +1,4 @@
+# Build this library on a standard OpenJDK 17 (required by the Android Gradle Plugin).
+# Prevents JitPack from trying to provision the JetBrains-vendor JDK, which fails.
+jdk:
+  - openjdk17
