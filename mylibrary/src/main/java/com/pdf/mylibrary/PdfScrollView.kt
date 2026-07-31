@@ -117,10 +117,27 @@ class PdfScrollView @JvmOverloads constructor(
     }
 
     fun close() {
-        rendererCore?.close()
-        rendererCore = null
+        pendingRerender?.let { handler.removeCallbacks(it) }
+        pendingRerender = null
+        // Order matters: stop/await the render worker BEFORE closing the document,
+        // otherwise a background render can hit a freed PdfRenderer and crash with
+        // "PdfDocumentProxy cannot be null" / "Document already closed".
+        adapter?.release()
         adapter = null
         recyclerView.adapter = null
+        rendererCore?.close()
+        rendererCore = null
+        scaleFactor = 1f
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // Only drop the pending re-render callback here. We deliberately do NOT close
+        // the document on detach: the view may reattach (e.g. rotation) and callers
+        // own the document lifecycle via close(). Background renders are safe to let
+        // finish because RendererCore serializes them and close() is ordered.
+        pendingRerender?.let { handler.removeCallbacks(it) }
+        pendingRerender = null
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
