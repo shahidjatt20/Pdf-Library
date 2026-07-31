@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    `maven-publish`
 }
 
 android {
@@ -30,6 +31,15 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+
+    // Tell AGP which variant produces the publishable component ("release").
+    // Without this, components["release"] does not exist and JitPack has nothing
+    // to publish (hence the missing publishToMavenLocal task).
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
@@ -42,4 +52,20 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.github.chrisbanes:PhotoView:2.3.0")
     implementation("com.otaliastudios:zoomlayout:1.9.0") // Updated version
+}
+
+// Registers publishReleasePublicationToMavenLocal / publishToMavenLocal so JitPack
+// can resolve and publish the AAR. JitPack overrides the coordinates with
+// com.github.<user>:<repo>:<tag>, but we set sane defaults for local publishing.
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+                groupId = "com.github.ShahidIITS"
+                artifactId = "mylibrary"
+                version = "1.0.1"
+            }
+        }
+    }
 }
